@@ -1,0 +1,449 @@
+#! /usr/bin/env python
+# -*- Encoding: utf-8 -*-
+# 
+#-------------------------------------------------------------------------
+# Author: L. Le Guillou (Sorbonne Universite / IN2P3-LPNHE)
+# <llg@lpnhe.in2p3.fr>
+#
+# DESI Project - DESI Calibration System
+# 
+# Script to turn on/off & know the status of the Raritan outlets,
+# to display the current PDU status, and to get various infos from
+# the Raritan PDUs.
+#
+# Originally written for SkyDICE (@Skymapper, Siding Spring, Australia)
+# 2017-11-02: Version for the DICE source elements at the T152 (OHP) 
+# 2018-03-08: Version for the DICE telescope elements at Jumeles (OHP)
+# 2018-03-14: Version for the DESI calibration system (PDU2 version).
+#
+#-------------------------------------------------------------------------
+
+import sys
+import os, os.path
+import subprocess
+import time
+
+import optparse
+
+# -----------------------------------------------------------------------
+
+# COMMUNITY = "public"
+COMMUNITY = "private"
+SNMPGET = "snmpget"
+SNMPSET = "snmpset"
+SNMP_OPTIONS = ["-v2c", "-Ovq", "-c", COMMUNITY]
+PORT = 161
+
+# -----------------------------------------------------------------------
+#
+# SNMP variables useful for us
+#
+# --------------------------------------------
+# Read/Switch outlet state (on/off)
+# snmpget -v2c -c private 140.252.50.73 -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt PDU2-MIB::outletSwitchingState.1.4
+# OID_PREFIX_OUTLET_STATE = "1.3.6.1.4.1.13742.4.1.2.2.1.3" # PDU MIB v1
+OID_PREFIX_OUTLET_STATE = "1.3.6.1.4.1.13742.6.4.1.2.1.2.1" # PDU MIB v2 # last 1 is PDU self-id
+#
+# --------------------------------------------
+# Outlet sensors
+#
+#
+# PDU2-MIB::measurementsOutletSensorValue = 1.3.6.1.4.1.13742.6.5.4.3.<pdu>.<outlet>.<measurement>
+OID_PREFIX_OUTLET_MEASUREMENTS = "1.3.6.1.4.1.13742.6.5.4.3.1.4.1"  # last 1 is PDU self-id (each PDU is independent, '1')
+OID_SUFFIX_OUTLET_CURRENT = "1"
+OID_SUFFIX_OUTLET_VOLTAGE = "4"
+OID_SUFFIX_OUTLET_ACTIVE_POWER = "5"
+OID_SUFFIX_OUTLET_ACTIVE_ENERGY = "8"
+OID_SUFFIX_OUTLET_FREQUENCY = "23"
+
+# 1.3.6.1.4.1.13742.6.5.4.3.1.4.1.1.5
+#
+# PDU 1, outlet 5: digits
+# 
+# First, how many digits (eg: 3 -> divide by 10^3 = 1000)
+# 
+# snmpwalk -v2c -c private 140.252.50.73 -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt  PDU2-MIB::outletSensorDecimalDigits.1.5
+# PDU2-MIB::outletSensorDecimalDigits.1.5.rmsCurrent = Gauge32: 3
+# PDU2-MIB::outletSensorDecimalDigits.1.5.rmsVoltage = Gauge32: 0
+# PDU2-MIB::outletSensorDecimalDigits.1.5.activePower = Gauge32: 0
+# PDU2-MIB::outletSensorDecimalDigits.1.5.apparentPower = Gauge32: 0
+# PDU2-MIB::outletSensorDecimalDigits.1.5.powerFactor = Gauge32: 2
+# PDU2-MIB::outletSensorDecimalDigits.1.5.activeEnergy = Gauge32: 0
+# PDU2-MIB::outletSensorDecimalDigits.1.5.onOff = Gauge32: 0
+# PDU2-MIB::outletSensorDecimalDigits.1.5.frequency = Gauge32: 1
+#
+# Second, what is the unit:
+# 
+# PDU 1, units
+# snmptable -v2c -c private 140.252.50.73 -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt  PDU2-MIB::outletSensorConfigurationTable | cut -c1-57
+# true               amp
+# true              volt
+# true              watt
+# true           voltamp
+# true              none
+# true          wattHour
+# true              none
+# true             hertz
+#
+# Last, getting the current value
+# 
+# snmpwalk -v2c -c private 140.252.50.73 -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt  PDU2-MIB::measurementsOutletSensorValue.1.5
+# PDU2-MIB::measurementsOutletSensorValue.1.5.rmsCurrent = Gauge32: 0
+# PDU2-MIB::measurementsOutletSensorValue.1.5.rmsVoltage = Gauge32: 119
+# PDU2-MIB::measurementsOutletSensorValue.1.5.activePower = Gauge32: 0
+# PDU2-MIB::measurementsOutletSensorValue.1.5.apparentPower = Gauge32: 0
+# PDU2-MIB::measurementsOutletSensorValue.1.5.powerFactor = Gauge32: 100
+# PDU2-MIB::measurementsOutletSensorValue.1.5.activeEnergy = Gauge32: 0
+# PDU2-MIB::measurementsOutletSensorValue.1.5.onOff = Gauge32: 0
+# PDU2-MIB::measurementsOutletSensorValue.1.5.frequency = Gauge32: 600
+#
+# PDU2-MIB::measurementsOutletSensorValue = 1.3.6.1.4.1.13742.6.5.4.3.<pdu>.<outlet>
+
+
+#-------------------------------------------------------------------------
+# Outlet configuration: outlet / lamp mapping for all the PDU units
+
+default_outlets = {  # same for all PDUs
+    #------------------------------------------------    
+    1: "Continuum-A",
+    2: "Continuum-B",
+    3: "Continuum-C",
+    #------------------------------------------------    
+    4: "Cd",
+    5: "Xe",
+    6: "Ne",
+    7: "Kr",
+    8: "HgAr"
+    #------------------------------------------------    
+}
+
+# For cmdline keyword 'Arcs'
+All_Arcs = ['Cd', 'Xe', 'Ne', 'Kr', 'HgAr']
+# For cmdline keyword 'Continuum'
+All_Continuum = ["Continuum-A", "Continuum-B", "Continuum-C"]
+
+
+pdus_config = {
+    #------------------------------------------------    
+    0: {
+        'name': "DESI-CALIB-00",
+        # 'ip': '192.168.0.100',
+        'ip': '140.252.50.190',
+        'outlets': default_outlets },
+    #------------------------------------------------    
+    1: {
+        'name': "DESI-CALIB-01",
+        # 'ip': '192.168.0.101',
+        'ip': '140.252.50.191',
+        'outlets': default_outlets },
+    #------------------------------------------------    
+    2: {
+        'name': "DESI-CALIB-02",
+        # 'ip': '192.168.0.102',
+        'ip': '140.252.50.192',
+        'outlets': default_outlets },
+    #------------------------------------------------    
+    3: {
+        'name': "DESI-CALIB-03",
+        # 'ip': '192.168.0.103',
+        'ip': '140.252.50.193',
+        'outlets': default_outlets },
+    #------------------------------------------------    
+    4: {
+        # Box-05 : not enabled on site (spare)
+        'name': "DESI-CALIB-04",
+        # 'ip': '192.168.0.104',
+        'ip': '140.252.50.194',
+        'outlets': default_outlets }
+    #------------------------------------------------    
+}    
+
+# back dictionaries
+
+pdus_byname = {}
+
+for pdu, props in pdus_config.iteritems():
+    pdus_byname[props['name']] = pdu
+    props['outlets_byname'] = {}
+    for k, v in props['outlets'].iteritems():
+        props['outlets_byname'][v] = k
+
+pdus_ids = pdus_config.keys()
+
+# print pdus_config
+# print pdus_byname
+# print pdus_ids
+
+#-------------------------------------------------------------------------
+
+def resolve_pdu(requested_pdu):
+    if requested_pdu in pdus_ids:
+        return [requested_pdu]
+    if requested_pdu in ["0","1","2","3","4"]:
+        return [int(requested_pdu)]
+    if requested_pdu.upper() == "ALL":
+        return [1,2,3,4] # only the installed ones
+    if pdus_byname.has_key(requested_pdu):
+        return [pdus_byname[requested_pdu]]
+    raise ValueError("Invalid PDU name or number [%s]. Stop." % str(requested_pdu))
+
+
+def resolve_outlet(pdu, requested_outlet):
+    if requested_outlet in [1,2,3,4,5,6,7,8]:
+        return [requested_outlet]
+    if requested_outlet in ["1","2","3","4","5","6","7","8"]:
+        return [int(requested_outlet)]
+    if requested_outlet.upper() == "ALL":
+        return [1,2,3,4,5,6,7,8]
+    if requested_outlet.upper() == "ARCS":
+        result = []
+        for lamp in All_Arcs:
+            result.extend(resolve_outlet(pdu, lamp))
+        return result
+    if requested_outlet.upper() == "CONTINUUM":
+        result = []
+        for lamp in All_Continuum:
+            result.extend(resolve_outlet(pdu, lamp))
+        return result
+    if pdus_config[pdu]['outlets_byname'].has_key(requested_outlet):
+        return [pdus_config[pdu]['outlets_byname'][requested_outlet]]
+    raise ValueError("Invalid Outlet name or number [%s]. Stop." % str(requested_outlet))
+
+#-------------------------------------------------------------------------
+
+def get_snmp_var(host, port, oid):
+    cmd = [SNMPGET] + SNMP_OPTIONS + [host  + ":" + str(port)] + [oid]
+    cmd = " ".join(cmd)
+    # print cmd
+    output = subprocess.Popen(cmd, stdout = subprocess.PIPE, shell=True).communicate()[0]
+    output_striped = output.strip()
+    # print output_striped
+    return output_striped
+
+def set_snmp_var(host, port, oid, dtype, value):
+    # cmd = [SNMPSET] + SNMP_OPTIONS + [host  + ":" + str(port)] + \
+    #     [oid] + ["i"] + [str(value)]
+    cmd = [SNMPSET] + SNMP_OPTIONS + [host  + ":" + str(port)] + \
+        [oid] + [dtype] + [str(value)]
+    cmd = " ".join(cmd)
+    # print cmd
+    output = subprocess.Popen(cmd, stdout = subprocess.PIPE, shell=True).communicate()[0]
+    output_striped = output.strip()
+    return output_striped
+    # if output_striped not in ["0", "1"]:
+    #     # Communication failed
+    #     raise IOError("Communication with PDU [%s] failed." % HOST)
+    # # print output
+    # return bool(int(output))
+    # # os.system(cmd)
+
+#-------------------------------------------------------------------------
+
+def get_outlet_state(pdu, outlet):
+    oid = OID_PREFIX_OUTLET_STATE + "." + str(outlet)
+    HOST = pdus_config[pdu]['ip']
+    output = get_snmp_var(HOST, PORT, oid)
+    if output not in ["0", "1"]:
+        # Communication failed
+        raise IOError("Communication with PDU [%s] failed." % HOST)
+    # print output
+    return bool(int(output))
+
+
+def set_outlet_state(pdu, outlet, on):
+    oid = OID_PREFIX_OUTLET_STATE + "." + str(outlet)
+    HOST = pdus_config[pdu]['ip']
+    output = set_snmp_var(HOST, PORT, oid, "i", int(on))
+    if output not in ["0", "1"]:
+        # Communication failed
+        raise IOError("Communication with PDU [%s] failed." % HOST)
+    # print output
+    return bool(int(output))
+
+
+def get_outlet_current_power_energy(pdu, outlet):
+    HOST = pdus_config[pdu]['ip']
+
+    # Get current
+    oid = OID_PREFIX_OUTLET_MEASUREMENTS + "." + str(outlet) + "." + OID_SUFFIX_OUTLET_CURRENT
+    # print "current", oid
+    current_str = get_snmp_var(HOST, PORT, oid)
+    try:
+        current = float(current_str) / 1.0e3
+    except ValueError, e:
+        # Communication failed
+        raise IOError("Communication with PDU [%s] failed." % HOST)
+
+    # Get active power
+    oid = OID_PREFIX_OUTLET_MEASUREMENTS + "." + str(outlet) + "." + OID_SUFFIX_OUTLET_ACTIVE_POWER
+    # print "power", oid
+    power_str = get_snmp_var(HOST, PORT, oid)
+    try:
+        power = float(power_str)
+    except ValueError, e:
+        # Communication failed
+        raise IOError("Communication with PDU [%s] failed." % HOST)
+
+    # Get active energy
+    oid = OID_PREFIX_OUTLET_MEASUREMENTS + "." + str(outlet) + "." + OID_SUFFIX_OUTLET_ACTIVE_ENERGY
+    # print "energy", oid
+    energy_str = get_snmp_var(HOST, PORT, oid)
+    try:
+        energy = float(energy_str)
+    except ValueError, e:
+        # Communication failed
+        raise IOError("Communication with PDU [%s] failed." % HOST)
+
+    return current, power, energy
+
+
+#-------------------------------------------------------------------------
+
+def display(pdu, outlet, full=False):
+    outlet_state = get_outlet_state(pdu, outlet)
+    if outlet_state:
+        s = 'ON'
+    else:
+        s = 'OFF'
+
+    msg = ("PDU %-10s [%d]: %-12s [%d] " %
+           ( pdus_config[pdu]['name'], pdu, 
+             pdus_config[pdu]['outlets'][outlet], outlet)) + ("%3s" % s)
+        
+    if full:
+        current, power, energy = get_outlet_current_power_energy(pdu, outlet)
+        msg += "    Curr.: %5.3f A   Act. Power: %3.1f W   Act. Energy: %4.0f Wh" % (current, power, energy)
+
+    print msg
+        
+#-------------------------------------------------------------------------
+
+
+# ========================================================================
+
+if __name__ == '__main__':
+    parser = optparse.OptionParser(usage = \
+    """
+    desi-calib-ctrl [--no-check] [--full] <pdu> [ <outlet> [ON|OFF] | SENSORS ]
+
+    Command-line tool to control the DESI calibration boxes PDUs.
+    This command has two modes:
+
+    * Display/change PDU outlet state (turning ON/OFF outlets):
+
+      desi-calib-ctrl <pdu> <outlet> [ON|OFF]
+
+        <pdu> may be:
+          A number [0-4]
+          A calibration box name: 
+              DESI-CALIB-00 to DESI-CALIB-04
+
+        <outlet> may be:
+          A number [1-8]
+          A name in the following device list: 
+              Continuum-A
+              Continuum-B
+              Continuum-C
+              Continuum  [ = all continuum lamps ]              
+              Cd
+              Xe
+              Ne
+              Kr
+              HgAr
+              Arcs [ = all arc lamps ]
+          Or the 'all' value.
+
+        Without ON/OFF specified, the current outlet state
+        will be displayed.
+
+    * Display PDU sensors state:
+
+      desi-calib-ctrl <pdu> SENSORS
+
+        <pdu> may be:
+          A number [0-4]
+          A calibration box name:
+              DESI-CALIB-00 to DESI-CALIB-04
+    """)
+    parser.add_option('-n', '--no-check', default=False, action='store_true',
+                      help='Do not check the current state (after action)')
+    # parser.add_option('-s', '--silent', default=False, action='store_true',
+    #                   help='Do not display anything')
+    parser.add_option('-f', '--full', default=False, action='store_true',
+                      help='Display all the details (outlet power, sensors, etc.)')
+
+    (options, args) = parser.parse_args()
+
+    print options
+    print "args = ", args
+
+
+    req_pdus = None    
+    req_outlets = None
+    on = None  # True / False
+
+    if len(args) < 2:
+        print >>sys.stderr, "usage: desi-calib-ctrl [--no-check] [--full] <pdu> [ <outlet> [ON|OFF] | SENSORS ]"
+        sys.exit(1)
+
+    # host   = sys.argv[1]
+    req_pdus = args[0]
+    req_outlets = args[1]
+
+    if len(args) == 3:
+        on_arg = args[2]
+        on_arg = on_arg.upper()
+        if (on_arg == "ON") or (on_arg == "1"):
+            on = True
+        elif (on_arg == "OFF") or (on_arg == "0"):
+            on = False
+        else:
+            print >>sys.stderr, "usage: desi-calib-ctrl [--no-check] [--full] <pdu> [ <outlet> [ON|OFF] | SENSORS ]"
+            sys.exit(1)
+
+    #-------------------------------------------------------------------------
+
+    try:
+        pdus = resolve_pdu(req_pdus)
+    except ValueError:
+        print >>sys.stderr, "error: unknown PDU(s) [%s]. Stop." % req_pdus
+        sys.exit(2)
+
+    
+    for pdu in pdus:
+        try:
+            outlets = resolve_outlet(pdu, req_outlets)
+        except ValueError:
+            print >>sys.stderr, "error: PDU %d: unknown outlet(s) [%s]. Stop." % (pdu, req_outlets)
+            sys.exit(3)
+
+        for outlet in outlets:
+            try:
+                display(pdu, outlet, options.full) # If no ON/OFF, just display the state
+            except IOError, e:
+                print >>sys.stderr, "error: " + str(e)
+                sys.exit(3)
+            
+            if on in [True, False]:
+                try:
+                    result = set_outlet_state(pdu, outlet, on)
+                    time.sleep(0.25)
+                    if not(options.no_check):
+                        display(pdu, outlet, options.full)
+                except IOError, e:
+                    print >>sys.stderr, "error: " + str(e)
+                    sys.exit(4)
+
+#-------------------------------------------------------------------------
+
+# snmpget -v2c -c raritan_public dicehead-rpc:161 1.3.6.1.4.1.13742.4.1.2.2.1.2.4
+# SNMPv2-SMI::enterprises.13742.4.1.2.2.1.2.4 = label outlet 4
+# snmpget -v2c -c raritan_public dicehead-rpc:161 1.3.6.1.4.1.13742.4.1.2.2.1.3.5
+# snmpset -v2c -c raritan_public dicehead-rpc:161 1.3.6.1.4.1.13742.4.1.2.2.1.3.5 i 1
+# snmpset -v2c -c raritan_public dicehead-rpc:161 1.3.6.1.4.1.13742.4.1.2.2.1.3.5 i 0
+
+
+
+
+
+                                                                                        
