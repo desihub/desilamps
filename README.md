@@ -1,5 +1,4 @@
-<xmp>
-# desilamps
+desilamps
 DESI calibration system software tools
 
 Tools for the DESI calibration system (illumination system on the upper ring + screen).
@@ -14,10 +13,10 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
 
 --------------------------------------------------------------------------------------------
 
-Examples:
+# Examples:
 
-* Getting the status of all the outlets of box DESI-CALIB-02:
-
+## Getting the status of all the outlets of box DESI-CALIB-02:
+```
   ./desi-calib-ctrl DESI-CALIB-02 all
 
   PDU DESI-CALIB-02 [2]: Continuum-A  [1] OFF
@@ -28,9 +27,10 @@ Examples:
   PDU DESI-CALIB-02 [2]: Ne           [6] OFF
   PDU DESI-CALIB-02 [2]: Kr           [7] OFF
   PDU DESI-CALIB-02 [2]: HgAr         [8] OFF
+```
 
-* Getting a full status, with the currents and power usage:
-
+## Getting a full status, with the currents and power usage:
+```
   ./desi-calib-ctrl --full DESI-CALIB-02 all
 
   PDU DESI-CALIB-02 [2]: Continuum-A [1] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  0 Wh
@@ -41,23 +41,26 @@ Examples:
   PDU DESI-CALIB-02 [2]: Ne          [6] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  4 Wh
   PDU DESI-CALIB-02 [2]: Kr          [7] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  3 Wh
   PDU DESI-CALIB-02 [2]: HgAr        [8] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  7 Wh
+```
 
-* Turning on the Xenon lamp on box DESI-CALIB-02:
-
+## Turning on the Xenon lamp on box DESI-CALIB-02:
+```
   ./desi-calib-ctrl DESI-CALIB-02 Xe on
 
   PDU DESI-CALIB-02 [2]: Xe           [5] OFF
   PDU DESI-CALIB-02 [2]: Xe           [5]  ON
+```
 
-* Turning off the Xenon lamp on box DESI-CALIB-02:
-
+## Turning off the Xenon lamp on box DESI-CALIB-02:
+```
   ./desi-calib-ctrl DESI-CALIB-02 Xe off
 
   PDU DESI-CALIB-02 [2]: Xe           [5]  ON
   PDU DESI-CALIB-02 [2]: Xe           [5] OFF
+```
 
-* Getting the temperature & humidity sensors values for DESI-CALIB-02:
-
+## Getting the temperature & humidity sensors values for DESI-CALIB-02:
+```
   ./desi-calib-ctrl DESI-CALIB-02 SENSORS
 
   PDU DESI-CALIB-02 [2]: SENSORS: 
@@ -66,11 +69,12 @@ Examples:
       AEI7400538    Temperature 2         normal                25.3  degreeC
       AEI7400538    Relative Humidity 1   normal                48.0  percent
       AEH7401747    Temperature 3         normal                24.3  degreeC
-
+```
 --------------------------------------------------------------------------------------------
 
-Usage: 
-    desi-calib-ctrl [--no-check] [--verbose] [--full] <pdu> [ <outlet> [ON|OFF] | SENSORS ]
+# Usage: 
+```
+  desi-calib-ctrl [--no-check] [--verbose] [--full] <pdu> [ <outlet> [ON|OFF] | SENSORS ]
 
     Command-line tool to control the DESI calibration boxes PDUs.
     This command has two modes:
@@ -121,5 +125,5 @@ Options:
   -f, --full      Display all the details (outlet power, current, active
                   energy, etc.)
 
+```
 ============================================================================================
-</xmp>
