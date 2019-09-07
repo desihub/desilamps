@@ -1,4 +1,4 @@
-<pre><![CDATA[
+<xmp>
 # desilamps
 DESI calibration system software tools
 
@@ -122,4 +122,4 @@ Options:
                   energy, etc.)
 
 ============================================================================================
-]]></pre>
+</xmp>
