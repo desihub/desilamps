@@ -1,3 +1,4 @@
+<pre>
 # desilamps
 DESI calibration system software tools
 
@@ -117,3 +118,4 @@ Options:
                   energy, etc.)
 
 ============================================================================================
+</pre>
