@@ -18,7 +18,8 @@ Examples:
 
 * Getting the status of all the outlets of box DESI-CALIB-02:
 
-  llg@lpndesibench:~> ./desi-calib-ctrl DESI-CALIB-02 all
+  ./desi-calib-ctrl DESI-CALIB-02 all
+
   PDU DESI-CALIB-02 [2]: Continuum-A  [1] OFF
   PDU DESI-CALIB-02 [2]: Continuum-B  [2] OFF
   PDU DESI-CALIB-02 [2]: Continuum-C  [3] OFF
@@ -30,7 +31,8 @@ Examples:
 
 * Getting a full status, with the currents and power usage:
 
-  llg@lpndesibench:~> ./desi-calib-ctrl --full DESI-CALIB-02 all
+  ./desi-calib-ctrl --full DESI-CALIB-02 all
+
   PDU DESI-CALIB-02 [2]: Continuum-A [1] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  0 Wh
   PDU DESI-CALIB-02 [2]: Continuum-B [2] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy: 39 Wh
   PDU DESI-CALIB-02 [2]: Continuum-C [3] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  6 Wh
@@ -42,19 +44,22 @@ Examples:
 
 * Turning on the Xenon lamp on box DESI-CALIB-02:
 
-  llg@lpndesibench:~> ./desi-calib-ctrl DESI-CALIB-02 Xe on
+  ./desi-calib-ctrl DESI-CALIB-02 Xe on
+
   PDU DESI-CALIB-02 [2]: Xe           [5] OFF
   PDU DESI-CALIB-02 [2]: Xe           [5]  ON
 
 * Turning off the Xenon lamp on box DESI-CALIB-02:
 
-  llg@lpndesibench:~> ./desi-calib-ctrl DESI-CALIB-02 Xe off
+  ./desi-calib-ctrl DESI-CALIB-02 Xe off
+
   PDU DESI-CALIB-02 [2]: Xe           [5]  ON
   PDU DESI-CALIB-02 [2]: Xe           [5] OFF
 
 * Getting the temperature & humidity sensors values for DESI-CALIB-02:
 
-llg@lpnlp171:~/DESI/DESI/calibration/tools> ./desi-calib-ctrl DESI-CALIB-02 SENSORS
+  ./desi-calib-ctrl DESI-CALIB-02 SENSORS
+
   PDU DESI-CALIB-02 [2]: SENSORS: 
       SerialNumber  Name                  State                 Value
       AEH7401748    Temperature 1         normal                25.1  degreeC
