@@ -11,7 +11,7 @@
 # to display the current PDU status, and to get various infos from
 # the Raritan PDUs.
 #
-# Originally written for SkyDICE (@Skymapper, Siding Spring, Australia)
+# Originally written at LPNHE for SkyDICE (@Skymapper, Siding Spring, Australia)
 # 2017-11-02: Version for the DICE source elements at the T152 (OHP) 
 # 2018-03-08: Version for the DICE telescope elements at Jumeles (OHP)
 # 2018-03-14: Version for the DESI calibration system (PDU2 version).
@@ -25,13 +25,20 @@ import time
 
 import optparse
 
+verbose = False
+
 # -----------------------------------------------------------------------
 
+PDU_MIB = "mibs/PDU2-MIB-3.3.10-43736.txt"
 # COMMUNITY = "public"
 COMMUNITY = "private"
 SNMPGET = "snmpget"
 SNMPSET = "snmpset"
-SNMP_OPTIONS = ["-v2c", "-Ovq", "-c", COMMUNITY]
+SNMPGETSET_OPTIONS = ["-v2c", "-Ovq", "-c", COMMUNITY, "-m", PDU_MIB]
+SNMPTABLE = "snmptable"
+# SNMPTABLE_OPTIONS = ["-v2c", "-CH", "-Cf", '"|"', "-c", COMMUNITY, "-m", PDU_MIB]
+SNMPTABLE_OPTIONS = ["-v2c", "-Cf", '"|"', "-c", COMMUNITY, "-m", PDU_MIB]
+
 PORT = 161
 
 # -----------------------------------------------------------------------
@@ -40,16 +47,18 @@ PORT = 161
 #
 # --------------------------------------------
 # Read/Switch outlet state (on/off)
-# snmpget -v2c -c private 140.252.50.73 -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt PDU2-MIB::outletSwitchingState.1.4
+# snmpget -v2c -c private 140.252.50.73 -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt PDU2-MIB::switchingOperation.1.4 ????
 # OID_PREFIX_OUTLET_STATE = "1.3.6.1.4.1.13742.4.1.2.2.1.3" # PDU MIB v1
-OID_PREFIX_OUTLET_STATE = "1.3.6.1.4.1.13742.6.4.1.2.1.2.1" # PDU MIB v2 # last 1 is PDU self-id
+# OID_PREFIX_OUTLET_STATE = "1.3.6.1.4.1.13742.6.4.1.2.1.2.1" # PDU MIB v2 # last 1 is PDU self-id
+OID_PREFIX_OUTLET_STATE = "PDU2-MIB::switchingOperation.1" # PDU MIB v2 # last 1 is PDU self-id
 #
 # --------------------------------------------
 # Outlet sensors
 #
 #
 # PDU2-MIB::measurementsOutletSensorValue = 1.3.6.1.4.1.13742.6.5.4.3.<pdu>.<outlet>.<measurement>
-OID_PREFIX_OUTLET_MEASUREMENTS = "1.3.6.1.4.1.13742.6.5.4.3.1.4.1"  # last 1 is PDU self-id (each PDU is independent, '1')
+# OID_PREFIX_OUTLET_MEASUREMENTS = "1.3.6.1.4.1.13742.6.5.4.3.1.4.1"  # last 1 is PDU self-id (each PDU is independent, '1')
+OID_PREFIX_OUTLET_MEASUREMENTS = "PDU2-MIB::measurementsOutletSensorValue.1"  # last 1 is PDU self-id (each PDU is independent, '1')
 OID_SUFFIX_OUTLET_CURRENT = "1"
 OID_SUFFIX_OUTLET_VOLTAGE = "4"
 OID_SUFFIX_OUTLET_ACTIVE_POWER = "5"
@@ -99,6 +108,21 @@ OID_SUFFIX_OUTLET_FREQUENCY = "23"
 #
 # PDU2-MIB::measurementsOutletSensorValue = 1.3.6.1.4.1.13742.6.5.4.3.<pdu>.<outlet>
 
+
+# llg@lpnlp171:~/DESI> snmptranslate -On -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt PDU2-MIB::externalSensorConfigurationTable
+# .1.3.6.1.4.1.13742.6.3.6.3
+# llg@lpnlp171:~/DESI> snmptranslate -On -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt PDU2-MIB::externalSensorMeasurementsTable
+# .1.3.6.1.4.1.13742.6.5.5.3
+
+# snmptable -CH -Cf "|" -v2c -c private 140.252.50.192 -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt PDU2-MIB::externalSensorConfigurationTable | cut -d'|' -f 2,3,11,12 > /tmp/A
+# snmptable -CH -Cf "|" -v2c -c private 140.252.50.192 -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt PDU2-MIB::externalSensorMeasurementsTable > /tmp/B
+# paste -d '|' /tmp/A /tmp/B | awk ' BEGIN { FS="|" } { print $1"\t"$2"\t"$7/10**$4" "$3 } '
+
+
+# OID_EXTERNAL_SENSOR_CONFIGURATION_TABLE = "1.3.6.1.4.1.13742.6.3.6.3"
+OID_EXTERNAL_SENSOR_CONFIGURATION_TABLE = "PDU2-MIB::externalSensorConfigurationTable"
+# OID_EXTERNAL_SENSOR_MEASUREMENTS_TABLE = "1.3.6.1.4.1.13742.6.5.5.3"
+OID_EXTERNAL_SENSOR_MEASUREMENTS_TABLE = "PDU2-MIB::externalSensorMeasurementsTable"
 
 #-------------------------------------------------------------------------
 # Outlet configuration: outlet / lamp mapping for all the PDU units
@@ -212,23 +236,24 @@ def resolve_outlet(pdu, requested_outlet):
 #-------------------------------------------------------------------------
 
 def get_snmp_var(host, port, oid):
-    cmd = [SNMPGET] + SNMP_OPTIONS + [host  + ":" + str(port)] + [oid]
+    cmd = [SNMPGET] + SNMPGETSET_OPTIONS + [host  + ":" + str(port)] + [oid]
     cmd = " ".join(cmd)
-    # print cmd
+    if verbose: print cmd
     output = subprocess.Popen(cmd, stdout = subprocess.PIPE, shell=True).communicate()[0]
     output_striped = output.strip()
-    # print output_striped
+    if verbose: print output_striped
     return output_striped
 
 def set_snmp_var(host, port, oid, dtype, value):
-    # cmd = [SNMPSET] + SNMP_OPTIONS + [host  + ":" + str(port)] + \
+    # cmd = [SNMPSET] + SNMPGETSET_OPTIONS + [host  + ":" + str(port)] + \
     #     [oid] + ["i"] + [str(value)]
-    cmd = [SNMPSET] + SNMP_OPTIONS + [host  + ":" + str(port)] + \
+    cmd = [SNMPSET] + SNMPGETSET_OPTIONS + [host  + ":" + str(port)] + \
         [oid] + [dtype] + [str(value)]
     cmd = " ".join(cmd)
-    # print cmd
+    if verbose: print cmd
     output = subprocess.Popen(cmd, stdout = subprocess.PIPE, shell=True).communicate()[0]
     output_striped = output.strip()
+    if verbose: print output_striped
     return output_striped
     # if output_striped not in ["0", "1"]:
     #     # Communication failed
@@ -239,27 +264,45 @@ def set_snmp_var(host, port, oid, dtype, value):
 
 #-------------------------------------------------------------------------
 
+def get_snmp_table(host, port, oid):
+    cmd = [SNMPTABLE] + SNMPTABLE_OPTIONS + [host  + ":" + str(port)] + [oid]
+    cmd = " ".join(cmd)
+    if verbose: print cmd
+    output = subprocess.Popen(cmd, stdout = subprocess.PIPE, shell=True).communicate()[0]
+    output_striped = output.strip()
+    if verbose: print output_striped
+    return output_striped
+
+#-------------------------------------------------------------------------
+
 def get_outlet_state(pdu, outlet):
     oid = OID_PREFIX_OUTLET_STATE + "." + str(outlet)
     HOST = pdus_config[pdu]['ip']
     output = get_snmp_var(HOST, PORT, oid)
-    if output not in ["0", "1"]:
+    if output not in ["0", "1", "on", "off"]:
         # Communication failed
         raise IOError("Communication with PDU [%s] failed." % HOST)
     # print output
-    return bool(int(output))
+    if output in ["0", "off"]: result = 0
+    else: result = 1
+
+    return result
 
 
 def set_outlet_state(pdu, outlet, on):
     oid = OID_PREFIX_OUTLET_STATE + "." + str(outlet)
     HOST = pdus_config[pdu]['ip']
     output = set_snmp_var(HOST, PORT, oid, "i", int(on))
-    if output not in ["0", "1"]:
+    if output not in ["0", "1", "on", "off"]:
         # Communication failed
         raise IOError("Communication with PDU [%s] failed." % HOST)
     # print output
-    return bool(int(output))
+    if output in ["0", "off"]: result = 0
+    else: result = 1
 
+    return result
+
+#-------------------------------------------------------------------------
 
 def get_outlet_current_power_energy(pdu, outlet):
     HOST = pdus_config[pdu]['ip']
@@ -296,10 +339,88 @@ def get_outlet_current_power_energy(pdu, outlet):
 
     return current, power, energy
 
+#-------------------------------------------------------------------------
+
+#--------- External sensors (T, RH) ------------------------
+
+# llg@lpnlp171:~/DESI/DESI/calibration/tools> snmptable -CH -Cf "|" -v2c -c private 140.252.50.192 -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt PDU2-MIB::externalSensorConfigurationTable | cut -d'|' -f 2,3,11,12
+# AEH7401748|Temperature 1|degreeC|1
+# AEI7400538|Temperature 2|degreeC|1
+# AEI7400538|Relative Humidity 1|percent|0
+# AEH7401747|Temperature 3|degreeC|1
+# llg@lpnlp171:~/DESI/DESI/calibration/tools> snmptable -CH -Cf "|" -v2c -c private 140.252.50.192 -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt PDU2-MIB::externalSensorMeasurementsTable 
+# true|normal|264|1567742602
+# true|normal|254|1567742601
+# true|normal|46|1567742601
+# true|normal|266|1567742601
+
+# A way to merge the external sensors data on the command line:
+# snmptable -CH -Cf "|" -v2c -c private 140.252.50.192 -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt PDU2-MIB::externalSensorConfigurationTable | cut -d'|' -f 2,3,11,12 > /tmp/A
+# snmptable -CH -Cf "|" -v2c -c private 140.252.50.192 -m /usr/share/mibs/PDU2-MIB-3.3.10-43736.txt PDU2-MIB::externalSensorMeasurementsTable > /tmp/B
+# paste -d '|' /tmp/A /tmp/B | awk ' BEGIN { FS="|" } { print $1"\t"$2"\t"$7/10**$4" "$3 } '
+
+
+def get_external_sensors_values(pdu):
+
+    # ----------- First get & parse sensor config ---------------------------
+    
+    oid = OID_EXTERNAL_SENSOR_CONFIGURATION_TABLE
+    HOST = pdus_config[pdu]['ip']
+    config_output = get_snmp_table(HOST, PORT, oid)
+    # print config_output
+    
+    config_lines = config_output.split('\n')
+    # first line is the variable names
+    if len(config_lines) < 2:
+        raise IOError("Communication with PDU [%s] failed." % HOST)
+
+    config_lines = config_lines[2:] # 2 useless lines
+    
+    varnames = config_lines[0].split("|")
+    nvars = len(varnames)
+    # print nvars, varnames
+    config_lines = config_lines[1:]
+
+    nsensors = len(config_lines)
+    
+    output = [ dict({}) for i in xrange(nsensors) ]
+
+    for i in xrange(nsensors):
+        values = config_lines[i].split("|")
+        for ki in xrange(nvars):
+            output[i][varnames[ki]] = values[ki]
+
+    # ----------- Then get & parse measurements ----------------------------
+
+    oid = OID_EXTERNAL_SENSOR_MEASUREMENTS_TABLE
+    HOST = pdus_config[pdu]['ip']
+    meas_output = get_snmp_table(HOST, PORT, oid)
+    meas_lines = meas_output.split('\n')
+    # first line is the variable names
+    if len(meas_lines) < 2:
+        raise IOError("Communication with PDU [%s] failed." % HOST)
+
+    meas_lines = meas_lines[2:] # 2 useless lines
+    
+    varnames = meas_lines[0].split("|")
+    nvars = len(varnames)
+    # print nvars, varnames
+    meas_lines = meas_lines[1:]
+
+    # print meas_lines
+    for i in xrange(nsensors):
+        values = meas_lines[i].split("|")
+        for ki in xrange(nvars):
+            output[i][varnames[ki]] = values[ki]
+
+    # ----------------------------------------------------------------------
+    
+    return output
+
 
 #-------------------------------------------------------------------------
 
-def display(pdu, outlet, full=False):
+def display_outlets(pdu, outlet, full=False):
     outlet_state = get_outlet_state(pdu, outlet)
     if outlet_state:
         s = 'ON'
@@ -315,7 +436,28 @@ def display(pdu, outlet, full=False):
         msg += "    Curr.: %5.3f A   Act. Power: %3.1f W   Act. Energy: %4.0f Wh" % (current, power, energy)
 
     print msg
-        
+
+
+#-------------------------------------------------------------------------
+
+def display_external_sensors(pdu):
+    sensors_values = get_external_sensors_values(pdu) # list of dictionaries
+
+    print("PDU %-10s [%d]: SENSORS: " %
+          ( pdus_config[pdu]['name'], pdu ) )
+
+    print("    %-12s  %-20s  %-20s  %-s" % ("SerialNumber", "Name", "State", "Value") )
+    
+    for sensor in sensors_values:
+        print("    %-12s  %-20s  %-20s  %-5s %s" %
+              ( sensor['externalSensorSerialNumber'],
+                sensor['externalSensorName'],
+                sensor['measurementsExternalSensorState'],
+                str( float(sensor['measurementsExternalSensorValue']) /
+                     10.0 ** int(sensor['externalSensorDecimalDigits']) ),
+                sensor['externalSensorUnits'] ) )
+               
+    
 #-------------------------------------------------------------------------
 
 
@@ -324,7 +466,7 @@ def display(pdu, outlet, full=False):
 if __name__ == '__main__':
     parser = optparse.OptionParser(usage = \
     """
-    desi-calib-ctrl [--no-check] [--full] <pdu> [ <outlet> [ON|OFF] | SENSORS ]
+    desi-calib-ctrl [--no-check] [--verbose] [--full] <pdu> [ <outlet> [ON|OFF] | SENSORS ]
 
     Command-line tool to control the DESI calibration boxes PDUs.
     This command has two modes:
@@ -337,6 +479,7 @@ if __name__ == '__main__':
           A number [0-4]
           A calibration box name: 
               DESI-CALIB-00 to DESI-CALIB-04
+          Or the 'all' value.
 
         <outlet> may be:
           A number [1-8]
@@ -364,13 +507,14 @@ if __name__ == '__main__':
           A number [0-4]
           A calibration box name:
               DESI-CALIB-00 to DESI-CALIB-04
+          Or the 'all' value.
     """)
     parser.add_option('-n', '--no-check', default=False, action='store_true',
                       help='Do not check the current state (after action)')
-    # parser.add_option('-s', '--silent', default=False, action='store_true',
-    #                   help='Do not display anything')
+    parser.add_option('-v', '--verbose', default=False, action='store_true',
+                      help='Verbose output')
     parser.add_option('-f', '--full', default=False, action='store_true',
-                      help='Display all the details (outlet power, sensors, etc.)')
+                      help='Display all the details (outlet power, current, active energy, etc.)')
 
     (options, args) = parser.parse_args()
 
@@ -381,25 +525,32 @@ if __name__ == '__main__':
     req_pdus = None    
     req_outlets = None
     on = None  # True / False
+    sensors = False
 
+    verbose = options.verbose
+    
     if len(args) < 2:
-        print >>sys.stderr, "usage: desi-calib-ctrl [--no-check] [--full] <pdu> [ <outlet> [ON|OFF] | SENSORS ]"
+        print >>sys.stderr, "usage: desi-calib-ctrl [--no-check] [--verbose] [--full] <pdu> [ <outlet> [ON|OFF] | SENSORS ]"
         sys.exit(1)
 
     # host   = sys.argv[1]
     req_pdus = args[0]
-    req_outlets = args[1]
 
-    if len(args) == 3:
-        on_arg = args[2]
-        on_arg = on_arg.upper()
-        if (on_arg == "ON") or (on_arg == "1"):
-            on = True
-        elif (on_arg == "OFF") or (on_arg == "0"):
-            on = False
-        else:
-            print >>sys.stderr, "usage: desi-calib-ctrl [--no-check] [--full] <pdu> [ <outlet> [ON|OFF] | SENSORS ]"
-            sys.exit(1)
+    if args[1].upper() == "SENSORS":
+        sensors = True
+    else:
+        req_outlets = args[1]
+
+        if len(args) == 3:
+            on_arg = args[2]
+            on_arg = on_arg.upper()
+            if (on_arg == "ON") or (on_arg == "1"):
+                on = True
+            elif (on_arg == "OFF") or (on_arg == "0"):
+                on = False
+            else:
+                print >>sys.stderr, "usage: desi-calib-ctrl [--no-check] [--full] <pdu> [ <outlet> [ON|OFF] | SENSORS ]"
+                sys.exit(1)
 
     #-------------------------------------------------------------------------
 
@@ -409,8 +560,21 @@ if __name__ == '__main__':
         print >>sys.stderr, "error: unknown PDU(s) [%s]. Stop." % req_pdus
         sys.exit(2)
 
+
+    #-------------------------------------------------------------------------
+    # Sensor values ?
+
+    if sensors:
+        for pdu in pdus:
+            display_external_sensors(pdu)
+
+        sys.exit(0)
+            
+    #-------------------------------------------------------------------------
+    # otherwise, outlet status/switch
     
     for pdu in pdus:
+
         try:
             outlets = resolve_outlet(pdu, req_outlets)
         except ValueError:
@@ -419,7 +583,7 @@ if __name__ == '__main__':
 
         for outlet in outlets:
             try:
-                display(pdu, outlet, options.full) # If no ON/OFF, just display the state
+                display_outlets(pdu, outlet, options.full) # If no ON/OFF, just display the state
             except IOError, e:
                 print >>sys.stderr, "error: " + str(e)
                 sys.exit(3)
@@ -429,7 +593,7 @@ if __name__ == '__main__':
                     result = set_outlet_state(pdu, outlet, on)
                     time.sleep(0.25)
                     if not(options.no_check):
-                        display(pdu, outlet, options.full)
+                        display_outlets(pdu, outlet, options.full)
                 except IOError, e:
                     print >>sys.stderr, "error: " + str(e)
                     sys.exit(4)
