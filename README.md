@@ -1,5 +1,4 @@
-desilamps
-DESI calibration system software tools
+# DESI calibration system software tools (desilamps)
 
 Tools for the DESI calibration system (illumination system on the upper ring + screen).
 
@@ -13,9 +12,9 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
 
 --------------------------------------------------------------------------------------------
 
-# Examples:
+## Examples:
 
-## Getting the status of all the outlets of box DESI-CALIB-02:
+### Getting the status of all the outlets of box DESI-CALIB-02:
 ```
   ./desi-calib-ctrl DESI-CALIB-02 all
 
@@ -29,7 +28,7 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
   PDU DESI-CALIB-02 [2]: HgAr         [8] OFF
 ```
 
-## Getting a full status, with the currents and power usage:
+### Getting a full status, with the currents and power usage:
 ```
   ./desi-calib-ctrl --full DESI-CALIB-02 all
 
@@ -43,7 +42,7 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
   PDU DESI-CALIB-02 [2]: HgAr        [8] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  7 Wh
 ```
 
-## Turning on the Xenon lamp on box DESI-CALIB-02:
+### Turning on the Xenon lamp on box DESI-CALIB-02:
 ```
   ./desi-calib-ctrl DESI-CALIB-02 Xe on
 
@@ -51,7 +50,7 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
   PDU DESI-CALIB-02 [2]: Xe           [5]  ON
 ```
 
-## Turning off the Xenon lamp on box DESI-CALIB-02:
+### Turning off the Xenon lamp on box DESI-CALIB-02:
 ```
   ./desi-calib-ctrl DESI-CALIB-02 Xe off
 
@@ -59,7 +58,7 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
   PDU DESI-CALIB-02 [2]: Xe           [5] OFF
 ```
 
-## Getting the temperature & humidity sensors values for DESI-CALIB-02:
+### Getting the temperature & humidity sensors values for DESI-CALIB-02:
 ```
   ./desi-calib-ctrl DESI-CALIB-02 SENSORS
 
@@ -72,7 +71,7 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
 ```
 --------------------------------------------------------------------------------------------
 
-# Usage: 
+## Usage: 
 ```
   desi-calib-ctrl [--no-check] [--verbose] [--full] <pdu> [ <outlet> [ON|OFF] | SENSORS ]
 
