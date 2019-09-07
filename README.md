@@ -17,49 +17,49 @@ Examples:
 
 * Getting the status of all the outlets of box DESI-CALIB-02:
 
-  llg@lpndesibench:~> ./desi-calib-ctrl DESI-CALIB-02 all
-  PDU DESI-CALIB-02 [2]: Continuum-A  [1] OFF
-  PDU DESI-CALIB-02 [2]: Continuum-B  [2] OFF
-  PDU DESI-CALIB-02 [2]: Continuum-C  [3] OFF
-  PDU DESI-CALIB-02 [2]: Cd           [4] OFF
-  PDU DESI-CALIB-02 [2]: Xe           [5] OFF
-  PDU DESI-CALIB-02 [2]: Ne           [6] OFF
-  PDU DESI-CALIB-02 [2]: Kr           [7] OFF
-  PDU DESI-CALIB-02 [2]: HgAr         [8] OFF
+llg@lpndesibench:~> ./desi-calib-ctrl DESI-CALIB-02 all
+PDU DESI-CALIB-02 [2]: Continuum-A  [1] OFF
+PDU DESI-CALIB-02 [2]: Continuum-B  [2] OFF
+PDU DESI-CALIB-02 [2]: Continuum-C  [3] OFF
+PDU DESI-CALIB-02 [2]: Cd           [4] OFF
+PDU DESI-CALIB-02 [2]: Xe           [5] OFF
+PDU DESI-CALIB-02 [2]: Ne           [6] OFF
+PDU DESI-CALIB-02 [2]: Kr           [7] OFF
+PDU DESI-CALIB-02 [2]: HgAr         [8] OFF
 
 * Getting a full status, with the currents and power usage:
 
-  llg@lpndesibench:~> ./desi-calib-ctrl --full DESI-CALIB-02 all
-  PDU DESI-CALIB-02 [2]: Continuum-A [1] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  0 Wh
-  PDU DESI-CALIB-02 [2]: Continuum-B [2] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy: 39 Wh
-  PDU DESI-CALIB-02 [2]: Continuum-C [3] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  6 Wh
-  PDU DESI-CALIB-02 [2]: Cd          [4] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  1 Wh
-  PDU DESI-CALIB-02 [2]: Xe          [5] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  2 Wh
-  PDU DESI-CALIB-02 [2]: Ne          [6] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  4 Wh
-  PDU DESI-CALIB-02 [2]: Kr          [7] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  3 Wh
-  PDU DESI-CALIB-02 [2]: HgAr        [8] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  7 Wh
+llg@lpndesibench:~> ./desi-calib-ctrl --full DESI-CALIB-02 all
+PDU DESI-CALIB-02 [2]: Continuum-A [1] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  0 Wh
+PDU DESI-CALIB-02 [2]: Continuum-B [2] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy: 39 Wh
+PDU DESI-CALIB-02 [2]: Continuum-C [3] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  6 Wh
+PDU DESI-CALIB-02 [2]: Cd          [4] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  1 Wh
+PDU DESI-CALIB-02 [2]: Xe          [5] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  2 Wh
+PDU DESI-CALIB-02 [2]: Ne          [6] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  4 Wh
+PDU DESI-CALIB-02 [2]: Kr          [7] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  3 Wh
+PDU DESI-CALIB-02 [2]: HgAr        [8] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  7 Wh
 
 * Turning on the Xenon lamp on box DESI-CALIB-02:
 
-  llg@lpndesibench:~> ./desi-calib-ctrl DESI-CALIB-02 Xe on
-  PDU DESI-CALIB-02 [2]: Xe           [5] OFF
-  PDU DESI-CALIB-02 [2]: Xe           [5]  ON
+llg@lpndesibench:~> ./desi-calib-ctrl DESI-CALIB-02 Xe on
+PDU DESI-CALIB-02 [2]: Xe           [5] OFF
+PDU DESI-CALIB-02 [2]: Xe           [5]  ON
 
 * Turning off the Xenon lamp on box DESI-CALIB-02:
 
-  llg@lpndesibench:~> ./desi-calib-ctrl DESI-CALIB-02 Xe off
-  PDU DESI-CALIB-02 [2]: Xe           [5]  ON
-  PDU DESI-CALIB-02 [2]: Xe           [5] OFF
+llg@lpndesibench:~> ./desi-calib-ctrl DESI-CALIB-02 Xe off
+PDU DESI-CALIB-02 [2]: Xe           [5]  ON
+PDU DESI-CALIB-02 [2]: Xe           [5] OFF
 
 * Getting the temperature & humidity sensors values for DESI-CALIB-02:
 
-  llg@lpnlp171:~/DESI/DESI/calibration/tools> ./desi-calib-ctrl DESI-CALIB-02 SENSORS
-  PDU DESI-CALIB-02 [2]: SENSORS: 
-      SerialNumber  Name                  State                 Value
-      AEH7401748    Temperature 1         normal                25.1  degreeC
-      AEI7400538    Temperature 2         normal                25.3  degreeC
-      AEI7400538    Relative Humidity 1   normal                48.0  percent
-      AEH7401747    Temperature 3         normal                24.3  degreeC
+llg@lpnlp171:~/DESI/DESI/calibration/tools> ./desi-calib-ctrl DESI-CALIB-02 SENSORS
+PDU DESI-CALIB-02 [2]: SENSORS: 
+    SerialNumber  Name                  State                 Value
+    AEH7401748    Temperature 1         normal                25.1  degreeC
+    AEI7400538    Temperature 2         normal                25.3  degreeC
+    AEI7400538    Relative Humidity 1   normal                48.0  percent
+    AEH7401747    Temperature 3         normal                24.3  degreeC
 
 
 --------------------------------------------------------------------------------------------
