@@ -1,0 +1,9 @@
+SNMP MIB tree partial dumps made with dump-PDU.sh script.
+
+Do not do this anymore: some configuration parameters (like Event Rules/Actions)
+could not be saved/restored that way.
+
+Instead, use the Maintenance > Backup/Restore functions from the Web interface.
+
+Laurent Le Guillou, 2019-09-08
+

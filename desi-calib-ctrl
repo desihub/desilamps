@@ -206,7 +206,7 @@ def resolve_pdu(requested_pdu):
     if requested_pdu in ["0","1","2","3","4"]:
         return [int(requested_pdu)]
     if requested_pdu.upper() == "ALL":
-        return [1,2,3,4] # only the installed ones
+        return [0,1,2,3] # only the installed ones
     if pdus_byname.has_key(requested_pdu):
         return [pdus_byname[requested_pdu]]
     raise ValueError("Invalid PDU name or number [%s]. Stop." % str(requested_pdu))
