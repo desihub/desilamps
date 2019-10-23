@@ -129,9 +129,9 @@ OID_EXTERNAL_SENSOR_MEASUREMENTS_TABLE = "PDU2-MIB::externalSensorMeasurementsTa
 
 default_outlets = {  # same for all PDUs
     #------------------------------------------------    
-    1: "Continuum-A",
-    2: "Continuum-B",
-    3: "Continuum-C",
+    1: "LEDs",
+    2: "Halogen-Blue-Filter",
+    3: "Halogen-No-Filter",
     #------------------------------------------------    
     4: "Cd",
     5: "Xe",
@@ -144,7 +144,8 @@ default_outlets = {  # same for all PDUs
 # For cmdline keyword 'Arcs'
 All_Arcs = ['Cd', 'Xe', 'Ne', 'Kr', 'HgAr']
 # For cmdline keyword 'Continuum'
-All_Continuum = ["Continuum-A", "Continuum-B", "Continuum-C"]
+# All_Continuum = ["LEDs", "Halogen-Blue-Filter", "Halogen-No-Filter"]
+All_Continuum = ["LEDs", "Halogen-Blue-Filter", "Halogen-No-Filter"]
 
 
 pdus_config = {
@@ -427,7 +428,7 @@ def display_outlets(pdu, outlet, full=False):
     else:
         s = 'OFF'
 
-    msg = ("PDU %-10s [%d]: %-12s [%d] " %
+    msg = ("PDU %-10s [%d]: %-20s [%d] " %
            ( pdus_config[pdu]['name'], pdu, 
              pdus_config[pdu]['outlets'][outlet], outlet)) + ("%3s" % s)
         
@@ -484,9 +485,9 @@ if __name__ == '__main__':
         <outlet> may be:
           A number [1-8]
           A name in the following device list: 
-              Continuum-A
-              Continuum-B
-              Continuum-C
+              LEDs
+              Halogen-Blue-Filter
+              Halogen-No-Filter
               Continuum  [ = all continuum lamps ]              
               Cd
               Xe
