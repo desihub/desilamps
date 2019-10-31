@@ -29,7 +29,8 @@ verbose = False
 
 # -----------------------------------------------------------------------
 
-PDU_MIB = "mibs/PDU2-MIB-3.3.10-43736.txt"
+# PDU_MIB = "mibs/PDU2-MIB-3.3.10-43736.txt"
+PDU_MIB = os.path.join(os.getenv("HOME"), "bin", "mibs/PDU2-MIB-3.3.10-43736.txt")
 # COMMUNITY = "public"
 COMMUNITY = "private"
 SNMPGET = "snmpget"
