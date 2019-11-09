@@ -32,7 +32,7 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
 ```
   desi-calib-ctrl --full DESI-CALIB-02 all
 
-  PDU DESI-CALIB-02 [2]: LEDs [1] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  0 Wh
+  PDU DESI-CALIB-02 [2]: LEDs                [1] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  0 Wh
   PDU DESI-CALIB-02 [2]: Halogen-Blue-Filter [2] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy: 39 Wh
   PDU DESI-CALIB-02 [2]: Halogen-No-Filter   [3] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  6 Wh
   PDU DESI-CALIB-02 [2]: Cd                  [4] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  1 Wh
