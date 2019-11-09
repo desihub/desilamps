@@ -2,7 +2,7 @@
 
 Tools for the DESI calibration system (illumination system on the upper ring + screen).
 
-L. Le Guillou, last updated 2019-10-23
+L. Le Guillou, last updated 2019-11-09
 
 ============================================================================================
 
@@ -16,7 +16,7 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
 
 ### Getting the status of all the outlets of box DESI-CALIB-02:
 ```
-  ./desi-calib-ctrl DESI-CALIB-02 all
+  desi-calib-ctrl DESI-CALIB-02 all
 
   PDU DESI-CALIB-02 [2]: LEDs                 [1] OFF
   PDU DESI-CALIB-02 [2]: Halogen-Blue-Filter  [2] OFF
@@ -30,7 +30,7 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
 
 ### Getting a full status, with the currents and power usage:
 ```
-  ./desi-calib-ctrl --full DESI-CALIB-02 all
+  desi-calib-ctrl --full DESI-CALIB-02 all
 
   PDU DESI-CALIB-02 [2]: LEDs [1] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  0 Wh
   PDU DESI-CALIB-02 [2]: Halogen-Blue-Filter [2] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy: 39 Wh
@@ -42,27 +42,27 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
   PDU DESI-CALIB-02 [2]: HgAr                [8] OFF  Curr.: 0.000 A  Act. Power: 0.0 W  Act. Energy:  7 Wh
 ```
 
-### Turning on the Xenon lamp on box DESI-CALIB-02:
+### Turning on the Xenon lamp on box DESI-CALIB-01:
 ```
-  ./desi-calib-ctrl DESI-CALIB-02 Xe on
+  desi-calib-ctrl DESI-CALIB-01 Xe on
 
-  PDU DESI-CALIB-02 [2]: Xe           [5] OFF
-  PDU DESI-CALIB-02 [2]: Xe           [5]  ON
-```
-
-### Turning off the Xenon lamp on box DESI-CALIB-02:
-```
-  ./desi-calib-ctrl DESI-CALIB-02 Xe off
-
-  PDU DESI-CALIB-02 [2]: Xe           [5]  ON
-  PDU DESI-CALIB-02 [2]: Xe           [5] OFF
+  PDU DESI-CALIB-01 [1]: Xe           [5] OFF
+  PDU DESI-CALIB-01 [1]: Xe           [5]  ON
 ```
 
-### Getting the temperature & humidity sensors values for DESI-CALIB-02:
+### Turning off the Xenon lamp on box DESI-CALIB-01:
 ```
-  ./desi-calib-ctrl DESI-CALIB-02 SENSORS
+  ./desi-calib-ctrl DESI-CALIB-01 Xe off
 
-  PDU DESI-CALIB-02 [2]: SENSORS: 
+  PDU DESI-CALIB-01 [1]: Xe           [5]  ON
+  PDU DESI-CALIB-01 [1]: Xe           [5] OFF
+```
+
+### Getting the temperature & humidity sensors values for DESI-CALIB-00:
+```
+  ./desi-calib-ctrl DESI-CALIB-00 SENSORS
+
+  PDU DESI-CALIB-00 [0]: SENSORS: 
       SerialNumber  Name                  State                 Value
       AEH7401748    Temperature 1         normal                25.1  degreeC
       AEI7400538    Temperature 2         normal                25.3  degreeC
@@ -83,9 +83,9 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
       desi-calib-ctrl <pdu> <outlet> [ON|OFF]
 
         <pdu> may be:
-          A number [0-4]
+          A number [0-3]
           A calibration box name: 
-              DESI-CALIB-00 to DESI-CALIB-04
+              DESI-CALIB-00 to DESI-CALIB-03
           Or the 'all' value.
 
         <outlet> may be:
@@ -111,9 +111,9 @@ desi-calib-ctrl: generic tool to control the calibration PDUs. Python script, us
       desi-calib-ctrl <pdu> SENSORS
 
         <pdu> may be:
-          A number [0-4]
+          A number [0-3]
           A calibration box name:
-              DESI-CALIB-00 to DESI-CALIB-04
+              DESI-CALIB-00 to DESI-CALIB-03 
           Or the 'all' value.
     
 
